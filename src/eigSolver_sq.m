@@ -1,4 +1,4 @@
-function [upper_bound_guess_vecs,psi,EigVal,a0,bup,lambda_cutoff] = eigSolver(S,count,upper_bound_guess_vecs,psi,EigVal,a0,bup,lambda_cutoff)
+function [upper_bound_guess_vecs,psi,EigVal,a0,bup,lambda_cutoff,ChebComp] = eigSolver_sq(S,count,upper_bound_guess_vecs,psi,EigVal,a0,bup,lambda_cutoff)
 % @brief    Solve the linearized Hamiltonian eigenproblem.
 %
 % @param count                  : SCF iteration count.
@@ -107,22 +107,43 @@ if S.parallel ~= 1
 		if S.cell_typ < 3
 			Hs = 0.5 * (Hs + Hs');
 		end
-		[Q, Q1] = eig(Hs);
-		EigVal(:,ks) = real(diag(Q1)); % WARNING: Taking real part only!
-		%===============================
-		% TODO: remove after check
-% 		S.EigVal = EigVal;
-% 		S = occupations(S);
-% 		AFUN = @(x) 1./(1+exp(S.bet*(x-S.lambda_f)));
-% 		fprintf(2,'tr(f(Hs)) = %f\n',trace(AFUN(Hs)));
-		%===============================
-		% subspace rotation
-		psi(:,:,ks) = psi(:,:,ks) * Q;
-
-		% Normalize psi, s.t. integral(psi_new' * psi_new) = 1
-		scfac = 1 ./ sqrt(sum(repmat(S.W,1,S.Nev) .* (psi(:,:,ks) .* conj(psi(:,:,ks))),1));
-		% psi(:,:,ks) = psi(:,:,ks) * diag(scfac);
-		psi(:,:,ks) = bsxfun(@times, psi(:,:,ks), scfac);
+		
+		if S.densMatFlag == 1
+			% instead of solving the eigenproblem, we find the subspace density
+			% matrix from Hs: Ds = f(Hs,Ef,sigma), since Ef is unknown, we
+			% first find the Tj((Hs-c)/e) matrices and save them (just need
+			% to save the trace for the calculation of Ef later, and once
+			% Ef is known, recalculate Tj's again, but may be slower)
+			opts_Hs.maxit = 300;
+			opts_Hs.tol = 1e-2;
+			opts_Hs.disp = 1;
+			tic
+% 			EigVal(1    ,ks) = real(eigs(Hs,1,'sr',opts_Hs));
+% 			EigVal(S.Nev,ks) = real(eigs(Hs,1,'lr',opts_Hs));
+			[Lmin,Lmax] = Lanczos_Algo(Hs,1e-10);
+			EigVal(1,ks) = Lmin;
+			EigVal(S.Nev,ks) = Lmax;
+			fprintf('eigmin(Hs) = %f, eigmax(Hs) = %f\n',EigVal(1,ks),EigVal(S.Nev,ks));
+			toc
+			
+			tic
+			eigmin = EigVal(1,ks)-0.2-0.1*abs( EigVal(1,ks));
+			eigmax = EigVal(S.Nev,ks)+0.2+0.1*abs( EigVal(S.Nev,ks));
+			ChebComp = Chebyshev_matvec_comp(S.sq_npl,Hs,eye(Nev1),eigmin,eigmax);
+			ChebComp(1).eigmin(ks) = eigmin; % needs to be exactly the same as the one used in Chebyshev_matvec_comp
+			ChebComp(1).eigmax(ks) = eigmax; % needs to be exactly the same as the one used in Chebyshev_matvec_comp
+			ChebComp(1).sq_npl = S.sq_npl;
+			toc
+		else
+			[Q, Q1] = eig(Hs);
+			EigVal(:,ks) = real(diag(Q1)); % WARNING: Taking real part only!
+			% subspace rotation
+			psi(:,:,ks) = psi(:,:,ks) * Q;
+			% Normalize psi, s.t. integral(psi_new' * psi_new) = 1
+			scfac = 1 ./ sqrt(sum(repmat(S.W,1,S.Nev) .* (psi(:,:,ks) .* conj(psi(:,:,ks))),1));
+			% psi(:,:,ks) = psi(:,:,ks) * diag(scfac);
+			psi(:,:,ks) = bsxfun(@times, psi(:,:,ks), scfac);
+		end
     end
 else 
 	% Before getting into parfor, set to use only one thread
@@ -227,4 +248,45 @@ else
 	maxNumCompThreads(LASTN);
 end
 
+end
 
+
+function ChebComp = Chebyshev_matvec_comp(npl,A,X,a,b)
+% Chebyshev_matvec_comp evaluates Ti(A,a,b) for i = 0,...,npl, where Ti(x,a,b)
+% is the standard Chebyshev polynomial Ti(x) with x in [a,b] mapped to [-1,1].
+% The results Ti(A,a,b) are saved in a structure ChebComp(i).Ti
+a0 = a;
+e = (b-a)/2;
+c = (b+a)/2;
+%sigma = e/(a0 - c); 
+sigma = e/(c - a0); 
+sigma1 = sigma;
+gamma = 2/sigma1;
+
+ChebComp(1).Hs = A; % TODO: REMOVE AFTER CHECK
+
+%Ysum = C(1) * X;
+ChebComp(1).Ti = X;
+ChebComp(1).tr_Ti = trace(ChebComp(1).Ti);
+if (npl <= 0), return; end
+%A(1:size(A,1)+1:end) = A(1:size(A,1)+1:end) - c;
+%Y = (sigma1/e)*(A*X); % T1(A,a,b) * X
+Y = (sigma1/e)*(A*X-c*X); % T1(A,a,b) * X
+ChebComp(2).Ti = Y;
+ChebComp(2).tr_Ti = trace(ChebComp(2).Ti);
+ii = 2;
+while(ii <= npl)
+	sigma2 = 1/(gamma - sigma);
+	% AX = A * Y;
+	Ynew = (2*sigma2/e)*(A*Y - c*Y) - ((sigma*sigma2)*X);
+	%Ynew = (2*sigma2/e)*(A*Y) - ((sigma*sigma2)*X);
+	%Ysum = Ysum + C(ii+1) * Ynew;
+	ChebComp(ii+1).Ti = Ynew;
+	ChebComp(ii+1).tr_Ti = trace(ChebComp(ii+1).Ti);
+	X = Y;
+	Y = Ynew;
+	sigma = sigma2;
+	ii = ii + 1;
+end
+
+end

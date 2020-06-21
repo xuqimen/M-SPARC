@@ -51,26 +51,33 @@ S = initElectrondensity(S);
 % Calculate nonlocal projectors	
 S.Atom = calculate_nloc_projector(S);
 
+S.densMatFlag = 1
 % Self-consistent Field (SCF) method
-S = scf(S);
-	
+if S.densMatFlag == 0
+	S = scf(S);
+else
+	S = scf_sq(S); % using SQ method to find the subspace density matrix
+end
+
 %save('rho.mat','-struct','S','rho');
 S.S_Debug.relax(S.Relax_iter).Eself = S.Eself;
 S.S_Debug.relax(S.Relax_iter).Eself_ref = S.Eself_ref;
 S.S_Debug.relax(S.Relax_iter).E_corr = S.E_corr;
 
-if abs(1-S.occ(1))>1e-6 || abs(S.occ(end))>1e-6
-	fprintf('[\b Warning: No. of states is not enough!]\b \n');
-	S.S_Debug.relax(S.Relax_iter).occ_check = 1; % 1 means not satisfied
-else
-	S.S_Debug.relax(S.Relax_iter).occ_check = 0;
+if S.densMatFlag == 0
+	if abs(1-S.occ(1))>1e-6 || abs(S.occ(end))>1e-6
+		fprintf('[\b Warning: No. of states is not enough!]\b \n');
+		S.S_Debug.relax(S.Relax_iter).occ_check = 1; % 1 means not satisfied
+	else
+		S.S_Debug.relax(S.Relax_iter).occ_check = 0;
+	end
 end
 	
 % Etotal = evaluateTotalEnergy(EigVal,occ,rho,S.b,phi,Vxc,S.W,S.bet,S.Eself,S.E_corr,1) ;
 
 fprintf('\n');
 fprintf(' **********************************************************\n');
-fprintf(' *          Energy per unit cell = %11.9f Ha.       *\n', S.Etotal);
+fprintf(' *          Energy per unit cell = %16.9f Ha.   *\n', S.Etotal);
 fprintf(' *          Energy per atom = %11.9f Ha.            *\n', S.Etotal / S.n_atm);
 fprintf(' **********************************************************\n');
 
@@ -98,7 +105,13 @@ fclose(fileID);
 
 % Atomic force calculation
 tic_force = tic;
-S.force = atomicForce(S);
+if S.densMatFlag == 0
+	S.force = atomicForce(S);
+else
+	atompos_next = [];
+	AtmForce = [];
+	return;
+end
 %S.force = zeros(S.n_atm,3);
 force_mat = S.force;
 sz_fmat = size(force_mat);

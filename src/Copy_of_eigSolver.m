@@ -93,7 +93,7 @@ if S.parallel ~= 1
 			lambda_cutoff(ks) = S.EigVal(S.Nev,ks) + 0.10; 
 		end
 		
-		fprintf('filter cutoff = %f, lower bound = %f, upper bound = %f\n',lambda_cutoff(ks),a0(ks),bup(ks));
+		% fprintf('filter cutoff = %f, lower bound = %f, upper bound = %f\n',lambda_cutoff(ks),a0(ks),bup(ks));
 		% Chebyshev filtering
 		psi(:,:,ks) = chebyshev_filter(psi(:,:,ks),S.npl,lambda_cutoff(ks),bup(ks),a0(ks),DL11,DL22,DL33,DG1,DG2,DG3,Heff,S,kpt_vec);
 		psi(:,:,ks) = orth(psi(:,:,ks));
@@ -109,13 +109,7 @@ if S.parallel ~= 1
 		end
 		[Q, Q1] = eig(Hs);
 		EigVal(:,ks) = real(diag(Q1)); % WARNING: Taking real part only!
-		%===============================
-		% TODO: remove after check
-% 		S.EigVal = EigVal;
-% 		S = occupations(S);
-% 		AFUN = @(x) 1./(1+exp(S.bet*(x-S.lambda_f)));
-% 		fprintf(2,'tr(f(Hs)) = %f\n',trace(AFUN(Hs)));
-		%===============================
+
 		% subspace rotation
 		psi(:,:,ks) = psi(:,:,ks) * Q;
 

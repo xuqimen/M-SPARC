@@ -11,12 +11,17 @@ function [Etot,Eband,Exc,Exc_dc,Eelec_dc,Eent] = evaluateTotalEnergy(S)
 
 % Band structure energy
 Eband = 0;
-ks = 1;
-for spin = 1:S.nspin
-	for kpt = 1:S.tnkpt
-		Eband = Eband + S.occfac * S.wkpt(kpt) * sum(S.EigVal(:,ks).*S.occ(:,ks)) ;
-		ks = ks + 1;
+if S.densMatFlag == 0
+	ks = 1;
+	for spin = 1:S.nspin
+		for kpt = 1:S.tnkpt
+			Eband = Eband + S.occfac * S.wkpt(kpt) * sum(S.EigVal(:,ks).*S.occ(:,ks)) ;
+			ks = ks + 1;
+		end
 	end
+else
+	% use density matrix to evaluate bandstructure energy
+	Eband = Eband_sq(S, S.ChebComp);
 end
 
 % Exchange-correlation energy
@@ -75,32 +80,81 @@ Eelec_dc = 0.5*sum((S.b-S.rho(:,1)).*S.phi.*S.W);
 
 % Electronic entropy
 Eent = 0 ;
-ks = 1;
-for spin = 1:S.nspin
-	for kpt = 1:S.tnkpt
-		if S.elec_T_type == 0 % fermi-dirac smearing
-			Eent_v = S.occfac*(1/S.bet)*(S.occ(:,ks).*log(S.occ(:,ks))+(1-S.occ(:,ks)).*log(1-S.occ(:,ks)));
-			Eent_v(isnan(Eent_v)) = 0.0 ;
-		elseif S.elec_T_type == 1 % gaussian smearing
-			Eent_v = -S.occfac*(1/S.bet)*1/(2*sqrt(pi)) .* exp(-(S.bet * (S.EigVal(:,ks)-S.lambda_f)).^2);
+if S.densMatFlag == 0
+	ks = 1;
+	for spin = 1:S.nspin
+		for kpt = 1:S.tnkpt
+			if S.elec_T_type == 0 % fermi-dirac smearing
+				Eent_v = S.occfac*(1/S.bet)*(S.occ(:,ks).*log(S.occ(:,ks))+(1-S.occ(:,ks)).*log(1-S.occ(:,ks)));
+				Eent_v(isnan(Eent_v)) = 0.0 ;
+			elseif S.elec_T_type == 1 % gaussian smearing
+				Eent_v = -S.occfac*(1/S.bet)*1/(2*sqrt(pi)) .* exp(-(S.bet * (S.EigVal(:,ks)-S.lambda_f)).^2);
+			end
+			Eent = Eent + S.wkpt(kpt)*sum(Eent_v);
+			ks = ks + 1;
 		end
-		Eent = Eent + S.wkpt(kpt)*sum(Eent_v);
-		ks = ks + 1;
 	end
+else
+	% use density matrix to evaluate entropy
+	Eent = Eent_sq(S, S.ChebComp);
 end
 
 % Total free energy
 Etot = Eband + Exc - Exc_dc + Eelec_dc - S.Eself + S.E_corr + Eent;
 
-%fprintf(2,' ------------------\n');
-% fprintf(' Eband = %.8f\n', Eband);
-% fprintf(' Exc = %.8f\n', Exc);
-% fprintf(' Exc_dc = %.8f\n', Exc_dc);
-% fprintf(' Eelec_dc = %.8f\n', Eelec_dc);
-% fprintf(' Eent = %.8f\n', Eent);
-% fprintf(' E_corr = %.8f\n', S.E_corr);
-% fprintf(' Eself = %.8f\n', S.Eself);
-% fprintf(' Etot = %.8f\n', Etot);
-%fprintf(2,' ------------------\n');
+fprintf(2,' ------------------\n');
+fprintf(' Eband = %.8f\n', Eband);
+fprintf(' Exc = %.8f\n', Exc);
+fprintf(' Exc_dc = %.8f\n', Exc_dc);
+fprintf(' Eelec_dc = %.8f\n', Eelec_dc);
+fprintf(' Eent = %.8f\n', Eent);
+fprintf(' E_corr = %.8f\n', S.E_corr);
+fprintf(' Eself = %.8f\n', S.Eself);
+fprintf(' Etot = %.8f\n', Etot);
+fprintf(2,' ------------------\n');
+
+end
+
+
+
+
+function Eband = Eband_sq(S, ChebComp)
+sq_npl = S.sq_npl;
+Eband = 0;
+ks = 1;
+for spin = 1:S.nspin
+	for kpt = 1:S.tnkpt
+		% Eband = Eband + S.occfac * S.wkpt(kpt) * sum(S.EigVal(:,ks).*S.occ(:,ks)) ;
+		Eband = Eband + S.occfac * S.wkpt(kpt) * trace(S.Ds * ChebComp(1).Hs); % direct implementation
+		ks = ks + 1;
+	end
+end
+
+end
+
+
+
+function Eent = Eent_sq(S, ChebComp)
+Eent = 0;
+ks = 1;
+for spin = 1:S.nspin
+	for kpt = 1:S.tnkpt
+		if S.elec_T_type == 0 % fermi-dirac smearing
+			%Eent_v = S.occfac*(1/S.bet)*(S.occ(:,ks).*log(S.occ(:,ks))+(1-S.occ(:,ks)).*log(1-S.occ(:,ks)));
+			%Eent_v(isnan(Eent_v)) = 0.0 ;
+		elseif S.elec_T_type == 1 % gaussian smearing
+			%error('gaussian smearing with density matrix is not implemented');
+			%Eent_v = -S.occfac*(1/S.bet)*1/(2*sqrt(pi)) .* exp(-(S.bet * (S.EigVal(:,ks)-S.lambda_f)).^2);
+		end
+		%Eent = Eent + S.wkpt(kpt)*sum(Eent_v);
+		Eent_k_v = diag(S.Ds * log(S.Ds) + (eye(S.Nev) - S.Ds) * log(eye(S.Nev) - S.Ds))
+		Eent_k = real(sum(Eent_k_v));
+		%Eent_k = 0;
+		
+		Eent = Eent + S.wkpt(kpt)*(S.occfac/S.bet)*Eent_k;
+		
+		ks = ks + 1;
+	end
+end
 
 end
