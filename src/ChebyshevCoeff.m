@@ -13,7 +13,8 @@ function Ci = ChebyshevCoeff(npl, AFUN, a, b)
 c = (b + a)/2;
 e = (b - a)/2;
 AFUN_map = @(y) AFUN(y*e+c);
-Ci = ChebyshevCoeff_std(npl, AFUN_map);
+%Ci = ChebyshevCoeff_std(npl, AFUN_map);
+Ci = ChebyshevCoeff_std_vectorized(npl, AFUN_map);
 
 end
 
@@ -43,6 +44,51 @@ for j = 0:npl
 	end
 	Ci(j+1) = fac*sum;
 end
+
+Ci(1) = Ci(1)/2.0;
+
+end
+
+
+
+function Ci = ChebyshevCoeff_std_vectorized(npl, AFUN)
+% ChebyshevCoeff calculates the Chebyshev expansion coeffcients Ci s.t.
+% AFUN(x) = sum_{i=0}^{npl} Ci * Ti(x), where Ti is the ith order Chebyshev
+% polynomial of the first kind.
+% Warning: this function currently uses discrete orthogonality property of 
+% Chebyshev polynomials which only give "approximate" coefficients. so if 
+% the function is not smooth enough the coefficients will not be accurate 
+% enough. so this function has to be replaced with its continuous counterpart 
+% which evaluates oscillatory integrals and uses fft/fct.
+
+% d = zeros(1,npl+1);
+Ci = zeros(1,npl+1);
+% for k = 0:npl
+% 	y = cos(pi*(k-0.5+1)/(npl+1));
+% 	d(k+1) = AFUN(y);
+% end
+y = cos((pi/(npl+1))*((0:npl) + (-0.5+1)));
+d = AFUN(y);
+
+
+fac = 2.0/(npl+1);
+
+for j = 0:npl
+% 	sum_temp = 0.0;
+% 	for k = 0:npl
+% 		sum_temp = sum_temp + d(k+1)*cos((pi*(j-1+1))*((k-0.5+1)/(npl+1)));
+% 	end
+	sum_temp = sum(d .* cos((pi*j).*(((0:npl)+0.5)./(npl+1))));
+	Ci(j+1) = fac*sum_temp;
+end
+
+
+% j = 0:npl;
+% k = 0:npl;
+% [jj,kk] = ndgrid(j,k);
+% temp = d .* cos((pi*jj).*((kk+0.5)./(npl+1)));
+
+
 
 Ci(1) = Ci(1)/2.0;
 

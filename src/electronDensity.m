@@ -42,6 +42,7 @@ function S = electronDensity_sq(S, ChebComp)
 
 % first evaluate the subspace density matrix using the correct fermi-level
 S.Ds = SubDensMat(S, S.lambda_f, ChebComp);
+S.psiDs = zeros(size(S.psi));
 
 % the density matrix is Psi * Ds * Psi', we just need the diagonal
 % note here Psi has to be scaled based on L2 norm, but our S.Psi has l2
@@ -49,14 +50,16 @@ S.Ds = SubDensMat(S, S.lambda_f, ChebComp);
 S.rho = 0 * S.rho;
 if S.nspin == 1
 	for kpt =1:S.tnkpt
-		S.rho = S.rho + 2*S.wkpt(kpt)* sum((S.psi(:,:,kpt)*S.Ds).*conj(S.psi(:,:,kpt)),2);
+		S.psiDs(:,:,kpt) = S.psi(:,:,kpt)*S.Ds;
+		S.rho = S.rho + 2*S.wkpt(kpt)* sum((S.psiDs).*conj(S.psi(:,:,kpt)),2);
 	end
 	S.rho = real(S.rho);
 else
 	ks = 1;
 	for spin =1:S.nspin
 		for kpt =1:S.tnkpt
-			S.rho(:,spin+1) = S.rho(:,spin+1) + S.wkpt(kpt)* sum((S.psi(:,:,ks)*S.Ds).*conj(S.psi(:,:,ks)),2);
+			S.psiDs(:,:,ks) = S.psi(:,:,ks)*S.Ds;
+			S.rho(:,spin+1) = S.rho(:,spin+1) + S.wkpt(kpt)* sum((S.psiDs(:,:,ks)).*conj(S.psi(:,:,ks)),2);
 			ks = ks + 1;
 		end
 	end

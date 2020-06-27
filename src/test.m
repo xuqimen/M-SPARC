@@ -41,6 +41,54 @@ function test()
 % return
 
 
+% test_ChebyshevSeries()
+
+
+test_sqnpl();
+
+end
+
+
+function test_sqnpl()
+
+Etotal_ref =-8.159022943;
+force_ref = [   0.005167890961373   0.002128046516335   0.003809864488619
+  -0.009367291979781   0.005801058180613   0.000190100551340
+   0.009645473428618  -0.003131628251629   0.003146788524201
+  -0.005446072410210  -0.004797476445320  -0.007146753564160];
+
+% SQnplVec = [25:25:100,110:20:190,200:100:1000];
+% SQnplVec = [110:20:190];
+SQnplVec = 500;
+E_err = zeros(size(SQnplVec));
+F_err = zeros(size(SQnplVec));
+nSCF  = zeros(size(SQnplVec));
+ACTUAL_NPL = zeros(size(SQnplVec));
+
+global mynpl
+for i = 1:length(SQnplVec)
+%for i = 1:2
+	%fname = '../tests/MeshConvergence/Si8-ONCV-0.5'; 
+	fname = '../mytest/Al4/sprc-calc';
+	mynpl = SQnplVec(i)
+	S = msparc(fname); 
+	ACTUAL_NPL(i) = S.sq_npl;
+	nSCF(i) = S.count_SCF;
+	%E_err(i) = abs(S.Etotal - Etotal_ref)/S.n_atm;
+	%F_err(i) = max(max(abs(S.force - force_ref)));
+end
+
+fprintf('npl #SCF  E_err  F_err \n');
+for i = length(SQnplVec):-1:1
+% 	fprintf('%4d  %.3e  %.3e\n',SQnplVec(i), E_err(i), F_err(i));
+	%fprintf('%4d  %.3e  %.3e\n',ACTUAL_NPL(i), E_err(i), F_err(i));
+	fprintf('%4d  %4d  %.3e  %.3e\n',ACTUAL_NPL(i),nSCF(i),E_err(i),F_err(i));
+end
+
+end
+
+
+function test_ChebyshevSeries()
 % x = linspace(-2,2)';
 % y1 = chebyshevT(4,x); % using matlab inbuilt function (slow) 
 % y2 = ChebyshevSum_matvec([0,0,0,0,1],diag(x),eye(length(x))); 
@@ -84,11 +132,7 @@ tic
 [C D] = eig(A,B);
 toc
 
-
-
-
 end
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -21,7 +21,11 @@ if S.densMatFlag == 0
 	end
 else
 	% use density matrix to evaluate bandstructure energy
+	%Eband_ref = Eband_sq_ref(S, S.ChebComp);
 	Eband = Eband_sq(S, S.ChebComp);
+	fprintf(2,'Eband     = %.15f\n',Eband);
+	%fprintf(2,'Eband_ref = %.15f\n',Eband_ref);
+	%fprintf(2,'Eband_err = %.3e\n',abs(Eband_ref-Eband));
 end
 
 % Exchange-correlation energy
@@ -96,7 +100,17 @@ if S.densMatFlag == 0
 	end
 else
 	% use density matrix to evaluate entropy
+	%tic
+	%Eent_ref = Eent_sq_ref(S, S.ChebComp);
+	%toc
+	
+	tic
 	Eent = Eent_sq(S, S.ChebComp);
+	toc
+
+	fprintf(2,'Eent     = %.15f\n',Eent);
+	%fprintf(2,'Eent_ref = %.15f\n',Eent_ref);
+	%fprintf(2,'Eent_err = %.3e\n',abs(Eent_ref-Eent));
 end
 
 % Total free energy
@@ -118,20 +132,85 @@ end
 
 
 
-function Eband = Eband_sq(S, ChebComp)
-sq_npl = S.sq_npl;
+function Eband = Eband_sq_ref(S, ChebComp)
+
 Eband = 0;
 ks = 1;
 for spin = 1:S.nspin
 	for kpt = 1:S.tnkpt
 		% Eband = Eband + S.occfac * S.wkpt(kpt) * sum(S.EigVal(:,ks).*S.occ(:,ks)) ;
-		Eband = Eband + S.occfac * S.wkpt(kpt) * trace(S.Ds * ChebComp(1).Hs); % direct implementation
+		% direct implementation
+		Eband = Eband + S.occfac * S.wkpt(kpt) * trace(S.Ds * ChebComp(1).Hs); 
+		ks = ks + 1;
+	end
+end
+
+fprintf(2, 'Eband calculated by direct method tr(Ds * Hs) = %.15f\n', Eband);
+
+end
+
+
+
+function Eband = Eband_sq(S, ChebComp)
+
+
+Eband = 0;
+ks = 1;
+for spin = 1:S.nspin
+	for kpt = 1:S.tnkpt
+		% Eband = Eband + S.occfac * S.wkpt(kpt) * sum(S.EigVal(:,ks).*S.occ(:,ks)) ;
+		
+		% direct implementation
+		%Eband = Eband + S.occfac * S.wkpt(kpt) * trace(S.Ds * ChebComp(1).Hs); 
+		
+		% use Chebyshev series
+		a = ChebComp(1).eigmin(ks); b = ChebComp(1).eigmax(ks);
+		AFUN = @(x) UbandFunc(x, S.lambda_f, S.bet, S.elec_T_type);
+		Cj = ChebyshevCoeff(S.sq_npl, AFUN, a, b);
+		Eband = Eband + S.occfac * S.wkpt(kpt) * dot(Cj,[ChebComp(:).tr_Ti]);
+		
+		ks = ks + 1;
+	end
+end
+fprintf(2, 'Eband calculated by Chebyshev series approx. to tr(Ds * Hs) = %.15f\n',Eband);
+
+end
+
+
+
+function Eent = Eent_sq_ref(S, ChebComp)
+Eent = 0;
+ks = 1;
+for spin = 1:S.nspin
+	for kpt = 1:S.tnkpt
+		if S.elec_T_type == 0 % fermi-dirac smearing
+			%Eent_v = S.occfac*(1/S.bet)*(S.occ(:,ks).*log(S.occ(:,ks))+(1-S.occ(:,ks)).*log(1-S.occ(:,ks)));
+			%Eent_v(isnan(Eent_v)) = 0.0 ;
+		elseif S.elec_T_type == 1 % gaussian smearing
+			%error('gaussian smearing with density matrix is not implemented');
+			%Eent_v = -S.occfac*(1/S.bet)*1/(2*sqrt(pi)) .* exp(-(S.bet * (S.EigVal(:,ks)-S.lambda_f)).^2);
+		end
+		%Eent = Eent + S.wkpt(kpt)*sum(Eent_v);
+		
+		% use direct method
+		Eent_k_v = diag(S.Ds * log(S.Ds) + (eye(S.Nev) - S.Ds) * log(eye(S.Nev) - S.Ds));
+		Eent_k = real(sum(Eent_k_v));
+
+		% % use Chebyshev series
+		% a = ChebComp(1).eigmin(ks); b = ChebComp(1).eigmax(ks);
+		% AFUN = @(x) EentFunc(x, S.lambda_f, S.bet, S.elec_T_type);
+		% Cj = ChebyshevCoeff(S.sq_npl, AFUN, a, b);
+		% Eent_k = dot(Cj,[ChebComp(:).tr_Ti]);
+		% Eent_k = real(Eent_k);
+
+		%Eent_k = 0;
+		
+		Eent = Eent + S.wkpt(kpt)*(S.occfac/S.bet)*Eent_k;
 		ks = ks + 1;
 	end
 end
 
 end
-
 
 
 function Eent = Eent_sq(S, ChebComp)
@@ -147,8 +226,18 @@ for spin = 1:S.nspin
 			%Eent_v = -S.occfac*(1/S.bet)*1/(2*sqrt(pi)) .* exp(-(S.bet * (S.EigVal(:,ks)-S.lambda_f)).^2);
 		end
 		%Eent = Eent + S.wkpt(kpt)*sum(Eent_v);
-		Eent_k_v = diag(S.Ds * log(S.Ds) + (eye(S.Nev) - S.Ds) * log(eye(S.Nev) - S.Ds))
-		Eent_k = real(sum(Eent_k_v));
+		
+		% use direct method
+		% Eent_k_v = diag(S.Ds * log(S.Ds) + (eye(S.Nev) - S.Ds) * log(eye(S.Nev) - S.Ds));
+		% Eent_k = real(sum(Eent_k_v));
+
+		% use Chebyshev series
+		a = ChebComp(1).eigmin(ks); b = ChebComp(1).eigmax(ks);
+		AFUN = @(x) EentFunc(x, S.lambda_f, S.bet, S.elec_T_type);
+		Cj = ChebyshevCoeff(S.sq_npl, AFUN, a, b);
+		Eent_k = dot(Cj,[ChebComp(:).tr_Ti]);
+		Eent_k = real(Eent_k);
+
 		%Eent_k = 0;
 		
 		Eent = Eent + S.wkpt(kpt)*(S.occfac/S.bet)*Eent_k;
@@ -158,3 +247,41 @@ for spin = 1:S.nspin
 end
 
 end
+
+
+
+function v = EentFunc(x,lambda_f,bet,elec_T_type)
+	% occ = (1/(1+exp(bet*(x-lambda_f))));
+	TEMP_TOL = 1e-12;
+	occ = occupation_func(x,lambda_f,bet,elec_T_type);
+	
+	if elec_T_type == 0 % Fermi-Dirac smearing
+% 		if(abs(occ)<0.01*TEMP_TOL || abs(occ-1.0)<0.01*TEMP_TOL)
+% 			v=0.0;
+% 		else
+% 			v=(occ.*log(occ) + (1-occ).*log(1-occ));
+% 		end
+		%v = zeros(size(occ));
+		ind = (abs(occ)<0.01*TEMP_TOL | abs(occ-1.0)<0.01*TEMP_TOL);
+		v = (occ.*log(occ) + (1-occ).*log(1-occ));
+		v(ind) = 0.0;
+	else
+		fprintf('Entropy not implemented for Gaussian smearing with SQ3');
+	end
+end
+
+
+function v = UbandFunc(x, lambda_f, bet, elec_T_type)
+	occ = occupation_func(x,lambda_f,bet,elec_T_type);
+	v = x .* occ;
+end
+
+
+function occ = occupation_func(x,lambda_f,bet,elec_T_type)
+	if elec_T_type == 0 % fermi-dirac smearing
+		occ = 1./(1+exp(bet*(x-lambda_f)));
+	else
+		occ = 0.5*(1.0-erf(bet*(x-lambda_f)));
+	end
+end
+

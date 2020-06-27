@@ -1,0 +1,72 @@
+***************************************************************************
+*                      M-SPARC v1.0.0 (Jun 01, 2020)                      *
+*   Copyright (c) 2019 Material Physics & Mechanics Group, Georgia Tech   *
+*           Distributed under GNU General Public License 3 (GPL)          *
+*                Date: 23-Jun-2020  Start time: 15:50:54                  *
+***************************************************************************
+                           Input parameters                                
+***************************************************************************
+CELL: 7.650000 7.650000 7.650000 
+FD_GRID: 10 10 10
+FD_ORDER: 12
+BC: P P P
+KPOINT_GRID: 1 1 1
+KPOINT_SHIFT: 0 0 0
+ELEC_TEMP_TYPE: fermi-dirac
+SMEARING: 0.006333621
+CHEB_DEGREE: 14
+NSTATES: 12
+EXCHANGE_CORRELATION: LDA_PZ
+CALC_STRESS: 0
+CALC_PRES: 0
+MAXIT_SCF: 100
+MD_FLAG: 1
+MD_METHOD: NVE
+MD_TIMESTEP: 1.00
+MD_NSTEP: 1
+ION_ELEC_EQT: 1
+ION_TEMP: 2000.000000
+TOL_SCF: 1.00E-04
+TOL_POISSON: 1.00E-06
+TOL_LANCZOS: 1.00E-02
+TOL_PSEUDOCHARGE: 1.00E-06
+MIXING_VARIABLE: density
+MIXING_PRECOND: kerker
+TOL_PRECOND: 5.85E-04
+PRECOND_KERKER_KTF: 1.00
+MIXING_PARAMETER: 0.50
+MIXING_HISTORY: 7
+PULAY_FREQUENCY: 1
+PULAY_RESTART_FREQ: 0
+REFERENCE_CUTOFF: 0.50
+RHO_TRIGGER: 4
+FIX_RAND: 0
+PRINT_FORCES: 1
+PRINT_ATOMS: 1
+PRINT_EIGEN: 0
+PRINT_DENSITY: 0
+PRINT_MDOUT: 1
+PRINT_VELS: 1
+PRINT_RESTART: 1
+PRINT_RESTART_FQ: 1
+OUTPUT_FILE: ../mytest/Al4/sprc-calc.out_1
+***************************************************************************
+                             Initialization                                
+***************************************************************************
+Mesh spacing                       :  0.765000 (Bohr)
+Number of symmetry adapted k-points:  1
+Output printed to                  :  ../mytest/Al4/sprc-calc.out_1
+Total number of atom types         :  1
+Total number of atoms              :  4
+Total number of electrons          :  12
+Atom type 1  (valence electrons)   :  Al 3
+Pseudopotential                    :  ../Al_psps/Al-3-1.9.psp8
+lloc                               :  4
+Atomic mass                        :  26.981538499999999
+Pseudocharge radii of atom type 1  :  7.65 7.65 7.65
+Number of atoms of type 1          :  4
+Estimated total memory usage       :  3.19 MB
+=====================================================================
+                    Self Consistent Field (SCF#1)                     
+=====================================================================
+Iteration     Free Energy (Ha/atom)   SCF Error        Timing (sec)

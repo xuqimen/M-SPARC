@@ -313,9 +313,9 @@ end
 % Total force
 
 force = force_local + force_corr + force_nloc;
-% force_local
-% force_corr
-% force_nloc
+force_local
+force_corr
+force_nloc
 if S.cell_typ == 2
 	force = force*S.grad_T; % Convert forces from lattice to cartesian coordinates
 end

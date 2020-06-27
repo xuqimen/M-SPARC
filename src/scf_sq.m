@@ -129,7 +129,7 @@ while (err > S.SCF_tol && count_SCF <= max_scf_iter || count_SCF <= min_scf_iter
 		% Solve for Fermi energy S.lambda_f and occupations
 		S = occupations(S);
 	else
-		S.sq_npl = 100;
+		%S.sq_npl = 1000;
 		[S.upper_bound_guess_vecs,S.psi,S.EigVal,a0,bup,lambda_cutoff,ChebComp] = ...
 		eigSolver_sq(S,count,S.upper_bound_guess_vecs,S.psi,S.EigVal,a0,bup,lambda_cutoff);
 		% Solve for Fermi energy S.lambda_f and occupations
@@ -302,6 +302,7 @@ while (err > S.SCF_tol && count_SCF <= max_scf_iter || count_SCF <= min_scf_iter
 			t_SCF = toc(tic_cheb);
 		end
 		
+		S.count_SCF = count_SCF;
 		if S.nspin == 1
 			fprintf(fileID,'%-6d      %18.10E        %.3E        %.3f\n', ...
 					count_SCF, S.Etotal/S.n_atm, err, t_SCF);

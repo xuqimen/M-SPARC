@@ -96,7 +96,8 @@ if S.parallel ~= 1
 		fprintf('filter cutoff = %f, lower bound = %f, upper bound = %f\n',lambda_cutoff(ks),a0(ks),bup(ks));
 		% Chebyshev filtering
 		psi(:,:,ks) = chebyshev_filter(psi(:,:,ks),S.npl,lambda_cutoff(ks),bup(ks),a0(ks),DL11,DL22,DL33,DG1,DG2,DG3,Heff,S,kpt_vec);
-		psi(:,:,ks) = orth(psi(:,:,ks));
+		%psi(:,:,ks) = orth(psi(:,:,ks));
+		psi(:,:,ks) = OrthChol(psi(:,:,ks));
 		Nev1 = size(psi(:,:,ks),2);    % WARNING: ORTH(psi) might change the size of psi, that's why we update Nev
 		assert(Nev1 == S.Nev,'Number of states have changed within SCF');
 

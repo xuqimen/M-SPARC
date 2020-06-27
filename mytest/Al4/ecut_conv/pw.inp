@@ -1,0 +1,40 @@
+&CONTROL
+  calculation='scf',
+  prefix='calc',
+  pseudo_dir='.',
+  outdir='.',
+  tprnfor=.true.,
+/
+&SYSTEM
+  ibrav=0,
+  celldm(1)=1.0,
+  nat=4,
+  ntyp=1,
+  ecutwfc=30,
+  !nbnd=450,
+  occupations='smearing',
+  smearing='gaussian',
+  degauss=0.01469972887,
+/
+&ELECTRONS
+  diagonalization='david'
+  conv_thr=1.0D-4
+  mixing_beta=0.3
+  electron_maxstep=300,
+  startingwfc='random',
+/
+CELL_PARAMETERS alat
+    7.65d0     0.000000000000000d0     0.000000000000000d0
+    0.000000000000000d0     7.65d0     0.000000000000000d0
+    0.000000000000000d0     0.000000000000000d0     7.65d0
+ATOMIC_SPECIES
+Al 26.9815385d00 Al.UPF
+ATOMIC_POSITIONS {bohr}
+   7.560228316158965   7.267834603323347   7.538315478913923
+   4.063363203362895   7.208961979577460   3.866994791031051
+   7.109187051461972   3.485573275943789   3.737578696561572
+   3.611148873183060   3.657916262500247   0.200384046049956
+
+K_POINTS automatic
+1 1 1 0 0 0
+

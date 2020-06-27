@@ -51,7 +51,12 @@ S = initElectrondensity(S);
 % Calculate nonlocal projectors	
 S.Atom = calculate_nloc_projector(S);
 
-S.densMatFlag = 1
+S.densMatFlag = 1;
+S.sq_npl = 25;
+global mynpl
+S.sq_npl = mynpl;
+
+
 % Self-consistent Field (SCF) method
 if S.densMatFlag == 0
 	S = scf(S);
@@ -108,9 +113,10 @@ tic_force = tic;
 if S.densMatFlag == 0
 	S.force = atomicForce(S);
 else
-	atompos_next = [];
-	AtmForce = [];
-	return;
+	%atompos_next = [];
+	%AtmForce = [];
+	S.force = atomicForce_sq(S);
+	%return;
 end
 %S.force = zeros(S.n_atm,3);
 force_mat = S.force;
