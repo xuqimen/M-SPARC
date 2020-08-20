@@ -52,9 +52,9 @@ S = initElectrondensity(S);
 S.Atom = calculate_nloc_projector(S);
 
 S.densMatFlag = 1;
-S.sq_npl = 25;
-global mynpl
-S.sq_npl = mynpl;
+S.sq_npl = 1000;
+% global mynpl
+% S.sq_npl = mynpl;
 
 
 % Self-consistent Field (SCF) method
