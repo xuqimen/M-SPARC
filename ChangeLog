@@ -1,4 +1,10 @@
 ----------------
+Aug 21, 2020
+Name: Qimen Xu
+* Add Complementary Subspace method for solving the top Nt eigenvalues and eigenvectors.
+
+
+----------------
 Jul 27, 2020
 Name: Qimen Xu
 * Fix the atom type in the cnt.ion file at tests/IllustrativeExamples/CNT/, the answer of this test is not changed.

@@ -633,6 +633,17 @@ else
 	S.occfac = 1;
 end
 
+% Complementary Subspace top states
+if S.CSFlag == 1 
+	if S.Ns_top <= 0 || S.occfac*(S.Nev - S.Ns_top) > S.Nelectron
+		fprintf('# Recalculating number of top states for complementary subspace...\n');
+		S.Ns_top = max(S.Nev * 0.2, round(S.Nev-S.Nelectron/S.occfac+1));
+		fprintf('# Number of top states Ns_top set to %d\n', S.Ns_top);
+	end
+	S.CS_index = (S.Nev-S.Ns_top+1):S.Nev;
+end
+
+
 % Name of the relax file
 % if S.RelaxFlag == 1
 %     S.relaxfname = strcat(filename,'.geopt'); 
@@ -974,6 +985,11 @@ S.TimeRevSym = 1;
 S.spin_typ = 0;
 S.nspin = 1; % spin 
 
+% Complementary Subspace
+S.CSFlag = 0; % 0 - off
+S.Ns_top = 0; % number of top states to calculate using Complementary Subspace method
+S.ind_CS = []; % index of top states
+
 % EXTRA variables from SPARC
 S.CheFSI_Optmz = 0;
 S.chefsibound_flag = 0;
@@ -1083,7 +1099,7 @@ end
 
 start_time = fix(clock);
 fprintf(fileID,'***************************************************************************\n');
-fprintf(fileID,'*                      M-SPARC v1.0.0 (Jun 20, 2020)                      *\n');
+fprintf(fileID,'*                      M-SPARC v1.0.0 (Aug 21, 2020)                      *\n');
 fprintf(fileID,'*   Copyright (c) 2019 Material Physics & Mechanics Group, Georgia Tech   *\n');
 fprintf(fileID,'*           Distributed under GNU General Public License 3 (GPL)          *\n');
 fprintf(fileID,'*                Date: %s  Start time: %02d:%02d:%02d                  *\n',date,start_time(4),start_time(5),start_time(6));

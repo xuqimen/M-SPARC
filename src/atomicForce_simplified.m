@@ -1,4 +1,4 @@
-function force = atomicForce(S)
+function force = atomicForce_simplified(S)
 % @brief    atomicForce(S) calculates the atomic force.
 % @authors  Qimen Xu <qimenxu@gatech.edu>
 %           Abhiraj Sharma <asharma424@gatech.edu>
@@ -343,7 +343,10 @@ else
 		kpt_vec = S.kptgrid(kpt,:);
 		
 		% rotate psi by Ds
-		S.psiDs(:,:,ks) = S.psi(:,:,ks) * Ds;
+		% S.psiDs(:,:,ks) = S.psi(:,:,ks) * Ds; % Can potentially be skipped
+		S.psiDs(:,:,ks) = S.psi(:,:,ks);
+		tr_Ds = trace(Ds);
+		fprintf(2, 'trace of Ds = %.15f\n', tr_Ds);
 		
 		% Calculate gradient of psi    
 		Dpsi_x = blochGradient(S,kpt_vec,1)*S.psiDs(:,:,ks);
@@ -380,6 +383,7 @@ else
 				integral_2_y = integral_2_y + integral_2_y_temp;
 				integral_2_z = integral_2_z + integral_2_z_temp;
 			end
+			integral_1 = integral_1 * Ds; % This is not needed if dPsi is rotated by Ds
 			tf_x = transpose(S.Atom(JJ_a).gamma_Jl) * real(integral_1.*integral_2_x) * (ones(S.Nev,1));
 			tf_y = transpose(S.Atom(JJ_a).gamma_Jl) * real(integral_1.*integral_2_y) * (ones(S.Nev,1));
 			tf_z = transpose(S.Atom(JJ_a).gamma_Jl) * real(integral_1.*integral_2_z) * (ones(S.Nev,1));
@@ -392,8 +396,8 @@ end
 % Total force
 
 force = force_local + force_corr + force_nloc;
-force_local
-force_corr
+% force_local
+% force_corr
 force_nloc
 if S.cell_typ == 2
 	force = force*S.grad_T; % Convert forces from lattice to cartesian coordinates

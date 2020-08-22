@@ -82,6 +82,9 @@ if(S.ForceCount == 1)
 	S.psi = rand(S.N,S.Nev,S.tnkpt*S.nspin)-0.5;
 	S.upper_bound_guess_vecs = zeros(S.N,S.tnkpt*S.nspin);
 	S.EigVal = zeros(S.Nev,S.tnkpt*S.nspin);
+	if (S.CSFlag == 1)
+		S.psi_t = zeros(S.N,S.Ns_top,S.tnkpt*S.nspin);
+	end
 end
 % S.EigVal = zeros(S.Nev,S.tnkpt*S.nspin);
 
@@ -120,8 +123,14 @@ while (err > S.SCF_tol && count_SCF <= max_scf_iter || count_SCF <= min_scf_iter
 		fprintf(' ============================================= \n');
 	end
 
-	[S.upper_bound_guess_vecs,S.psi,S.EigVal,a0,bup,lambda_cutoff] = ...
+	[S.upper_bound_guess_vecs,S.psi,S.EigVal,a0,bup,lambda_cutoff,CS] = ...
 	eigSolver(S,count,S.upper_bound_guess_vecs,S.psi,S.EigVal,a0,bup,lambda_cutoff);
+	if S.CSFlag == 1
+		S.psi_t = CS.psi_t;
+		S.tr_Hs = CS.tr_Hs;
+		S.Qt = CS.Qt;
+		S.Hs = CS.Hs;
+	end
 
 	% Solve for Fermi energy S.lambda_f and occupations
 	S = occupations(S);

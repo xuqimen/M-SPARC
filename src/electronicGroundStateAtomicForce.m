@@ -98,7 +98,29 @@ fclose(fileID);
 
 % Atomic force calculation
 tic_force = tic;
+
+% TODO: remove after check
+if S.CSFlag == 1
+	Ds = eye(S.Nev) - S.Qt * diag(1-S.occ(S.CS_index,1)) * S.Qt'; % Note here we assume gamma point
+	Ds = (Ds + Ds') * 0.5;
+	S.Ds = Ds;
+end
+
 S.force = atomicForce(S);
+
+% test two different force formulas
+if S.CSFlag == 1
+	fprintf('====================================\n');
+	fprintf('= Potentially a simplified formula =\n');
+	fprintf('====================================\n');
+	S.force = atomicForce_simplified(S);
+
+	fprintf('====================================\n');
+	fprintf('= Using a rotation free formula    =\n');
+	fprintf('====================================\n');
+	S.force = atomicForce_fullrotfree(S);
+end
+
 %S.force = zeros(S.n_atm,3);
 force_mat = S.force;
 sz_fmat = size(force_mat);
